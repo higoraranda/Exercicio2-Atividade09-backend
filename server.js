@@ -1,47 +1,59 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
+import express from "express";
+import cors from "cors";
+import fs from "fs";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_PATH = path.join(__dirname, 'db.json');
+const DB_FILE = "db.json";
 
+app.use(cors());
 app.use(express.json());
 
-// Rota para listar todas as notas (GET)
-app.get('/notes', (req, res) => {
-    const data = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-    res.json(data.notes);
+// Lê as notas do arquivo JSON
+function readNotes() {
+  const data = fs.existsSync(DB_FILE) ? fs.readFileSync(DB_FILE) : "[]";
+  return JSON.parse(data);
+}
+
+// Salva as notas no arquivo JSON
+function writeNotes(notes) {
+  fs.writeFileSync(DB_FILE, JSON.stringify(notes, null, 2));
+}
+
+// Listar todas as notas
+app.get("/notes", (req, res) => {
+  const notes = readNotes();
+  res.json(notes);
 });
 
-// Rota para criar uma nota (POST)
-app.post('/notes', (req, res) => {
-    const data = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-    const newNote = { id: Date.now(), ...req.body };
-    data.notes.push(newNote);
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
-    res.json(newNote);
+// Criar nova nota
+app.post("/notes", (req, res) => {
+  const notes = readNotes();
+  const newNote = { id: Date.now(), ...req.body };
+  notes.push(newNote);
+  writeNotes(notes);
+  res.status(201).json(newNote);
 });
 
-// Rota para atualizar uma nota (PUT)
-app.put('/notes/:id', (req, res) => {
-    const data = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-    const noteIndex = data.notes.findIndex(note => note.id == req.params.id);
-    if (noteIndex >= 0) {
-        data.notes[noteIndex] = { ...data.notes[noteIndex], ...req.body };
-        fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
-        res.json(data.notes[noteIndex]);
-    } else {
-        res.status(404).json({ error: "Nota não encontrada" });
-    }
+// Atualizar uma nota
+app.put("/notes/:id", (req, res) => {
+  let notes = readNotes();
+  const id = parseInt(req.params.id);
+  notes = notes.map(n => (n.id === id ? { ...n, ...req.body } : n));
+  writeNotes(notes);
+  res.json({ message: "Nota atualizada" });
 });
 
-// Rota para deletar uma nota (DELETE)
-app.delete('/notes/:id', (req, res) => {
-    const data = JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-    data.notes = data.notes.filter(note => note.id != req.params.id);
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
-    res.json({ success: true });
+// Deletar uma nota
+app.delete("/notes/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  let notes = readNotes();
+  notes = notes.filter(n => n.id !== id);
+  writeNotes(notes);
+  res.json({ message: "Nota deletada" });
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Servidor rodando em http://localhost:${PORT}`);
+});
+  
