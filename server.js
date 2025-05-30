@@ -9,24 +9,20 @@ const DB_FILE = "db.json";
 app.use(cors());
 app.use(express.json());
 
-// Lê as notas do arquivo JSON
 function readNotes() {
   const data = fs.existsSync(DB_FILE) ? fs.readFileSync(DB_FILE) : "[]";
   return JSON.parse(data);
 }
 
-// Salva as notas no arquivo JSON
 function writeNotes(notes) {
   fs.writeFileSync(DB_FILE, JSON.stringify(notes, null, 2));
 }
 
-// Listar todas as notas
 app.get("/notes", (req, res) => {
   const notes = readNotes();
   res.json(notes);
 });
 
-// Criar nova nota
 app.post("/notes", (req, res) => {
   const notes = readNotes();
   const newNote = { id: Date.now(), ...req.body };
@@ -35,7 +31,6 @@ app.post("/notes", (req, res) => {
   res.status(201).json(newNote);
 });
 
-// Atualizar uma nota
 app.put("/notes/:id", (req, res) => {
   let notes = readNotes();
   const id = parseInt(req.params.id);
@@ -44,7 +39,6 @@ app.put("/notes/:id", (req, res) => {
   res.json({ message: "Nota atualizada" });
 });
 
-// Deletar uma nota
 app.delete("/notes/:id", (req, res) => {
   const id = parseInt(req.params.id);
   let notes = readNotes();
